@@ -1,0 +1,20 @@
+Project aim: rendering in 3D heat flux anomalies maps.
+
+Original data (to be rendered):
+./UFZ_RemoteSensing/
+
+Example of a rendering - to make something silimar to this:
+https://www.youtube.com/watch?v=uyXHg8Ddask 
+
+The idea would be to show these monthly latent heat flux anomalies in 3d from 2001 to 2012 like in the video. 
+It would be nice if we can add some information about events that happened over this period of time, for example:
+    2003 Drying trend in June (positive anomaly) followed by the July-August heat wave (negative anomalies) in western Europe
+    2005 Drought in the Iberian Peninsula over the whole year (negative anomalies)
+    2007 Heatwave in Italy, Greece and Turkey in July-August (negative anomalies)
+    2010 positive anomaly during the heatwave of Eastern Europe in July
+
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+Available software for viewing and interacting with the data:
+https://www.unidata.ucar.edu/software/netcdf/software.html
+ 
