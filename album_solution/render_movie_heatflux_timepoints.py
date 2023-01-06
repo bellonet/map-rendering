@@ -2,45 +2,55 @@ import pyvista as pv
 import numpy as np
 import netCDF4 as nc
 import gemgis as gg
-
-def create_timepoint_mesh(ds, heat_arr_name, fill_value, tp_idx, n_smooth_itr):
-
-    arr = ds[heat_arr_name][tp_idx]
-    min_val = np.min(arr)
-
-    ## due to sometimes producing an empty / incorrect mesh:
-    ## try_generate_mesh func
-    n_points = 0
-    z_min_bound = fill_value
-    while not n_points or z_min_bound==fill_value:
-
-        ## creates a pyvista.StructuredGrid
-        grid = gg.visualization.create_dem_3d(dem=arr.filled(fill_value=fill_value), 
-                                              extent=[0,arr.shape[1],0,arr.shape[0]])
-        
-        grid.rename_array('Elevation','Heat')
-
-        ## get rid of fill_val values:
-        unstructured_grid = grid.threshold(int(min_val-2), invert=False, preference='point', all_scalars=True)
-        n_points = unstructured_grid.n_points
-        z_min_bound = unstructured_grid.bounds[4]
-
-    grid = unstructured_grid
-
-    ## check surface memory /time - maybe needs to be surface and not mesh
-    ## smooth the surface:
-    if n_smooth_itr:        
-        # creates a pyvista.PolyData (surface data)
-        grid = grid.extract_geometry()
-        # Smooth the surface
-        grid = grid.smooth(n_iter=n_smooth_itr)
-
-    return grid
+import pandas as pd
 
 
 def format_date(date):
     date = str(date)
     return f'{date[6:8]}/{date[4:6]}/{date[:4]}'
+
+
+
+def try_create_mesh(arr, fill_value):
+
+    min_val = np.min(arr)
+
+    n_points = 0
+    z_min_bound = fill_value
+    ## due to sometimes producing an empty / incorrect mesh:
+    ## while I catch the error from `unstructured_grid` the error already happens when creating`grid`
+    while not n_points or z_min_bound==fill_value:
+
+        ## creates a pyvista.StructuredGrid
+        grid = gg.visualization.create_dem_3d(dem=arr.filled(fill_value=fill_value), 
+                                                  extent=[0,arr.shape[1],0,arr.shape[0]])
+        #print(grid.actual_memory_size)
+        grid.rename_array('Elevation','Heat')
+        
+        ## get rid of fill_val values:
+        unstructured_grid = grid.threshold(int(min_val-2), invert=False, preference='point', all_scalars=True)
+        n_points = unstructured_grid.n_points
+        z_min_bound = unstructured_grid.bounds[4]
+
+    return  grid
+
+
+
+def create_timepoint_surface(ds, heat_arr_name, fill_value, tp_idx, n_smooth_itr):
+
+    arr = ds[heat_arr_name][tp_idx]
+    grid = try_create_mesh(arr, fill_value)
+
+    # creates a pyvista.PolyData -  needed for smoothening and uses less memory
+    surface = grid.extract_geometry()
+
+    # smooth the surface:
+    if n_smooth_itr:        
+        surface = surface.smooth(n_iter=n_smooth_itr)
+
+    return surface
+
+
 
 def run_render(dataset_path, output_path, n_timepoints, n_smooth_itr, event_csv, opacity, framerate):
 
@@ -69,7 +79,7 @@ def run_render(dataset_path, output_path, n_timepoints, n_smooth_itr, event_csv,
 
     print(f'rendering time point: 0')
 
-    actor_mesh = p.add_mesh(mesh=create_timepoint_mesh(ds, heat_arr_name, fill_value, 0, n_smooth_itr), clim=clim, cmap=cmap, opacity=opacity, scalar_bar_args=sargs)
+    actor_mesh = p.add_mesh(mesh=create_timepoint_surface(ds, heat_arr_name, fill_value, 0, n_smooth_itr), clim=clim, cmap=cmap, opacity=opacity, scalar_bar_args=sargs)
     actor_date = p.add_text(format_date(time_arr[0]), position='upper_right', color='blue', shadow=True, font_size=26)
 
     # Camera position is a tuple: camera location, focus point, viewup vector
@@ -102,7 +112,7 @@ def run_render(dataset_path, output_path, n_timepoints, n_smooth_itr, event_csv,
         p.remove_actor(actor_date)
         p.remove_actor('event_text')
 
-        actor_mesh = p.add_mesh(mesh=create_timepoint_mesh(ds, heat_arr_name, fill_value, tp_idx, n_smooth_itr), clim=clim, cmap=cmap, opacity=opacity, scalar_bar_args=sargs)
+        actor_mesh = p.add_mesh(mesh=create_timepoint_surface(ds, heat_arr_name, fill_value, tp_idx, n_smooth_itr), clim=clim, cmap=cmap, opacity=opacity, scalar_bar_args=sargs)
         actor_date = p.add_text(format_date(time_arr[tp_idx]), position='upper_right', color='blue', shadow=True, font_size=26)
         
         if tp_idx==5:
@@ -116,6 +126,8 @@ def run_render(dataset_path, output_path, n_timepoints, n_smooth_itr, event_csv,
         
     pv.close_all()
 
+
+
+
 run_render('/home/ella/work/heat_flux_anomalies/UFZ_RemoteSensing/HOLAPS-H-JJA_anomaly-d-2001-2005.nc',
-    'test.mp4',
-    4, 10, None, 0.5, 5)
+    'test.mp4', 4, 10, None, 0.5, 5)
