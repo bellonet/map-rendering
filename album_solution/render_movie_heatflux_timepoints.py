@@ -106,7 +106,7 @@ def run_render(dataset_path, output_path, n_timepoints, n_smooth_itr, opacity, f
     sargs = {"color":"black"} # scale bar arguments
 
     events_per_time_idx_dict = {}
-    if event_csv_path:
+    if event_csv_path!='None':
         events_per_time_idx_dict = get_events(event_csv_path, time_arr, long_arr, lat_arr)
 
     ## Create our render engine
@@ -166,5 +166,8 @@ def run_render(dataset_path, output_path, n_timepoints, n_smooth_itr, opacity, f
         
     pv.close_all()
 
-run_render('/home/ella/work/heat_flux_anomalies/UFZ_RemoteSensing/HOLAPS-H-JJA_anomaly-d-2001-2005.nc',
-    'test.mp4', 20, 4, 0.5, 5, 'test.csv')
+
+
+if __name__ == "__main__":
+    run_render('/home/ella/work/heat_flux_anomalies/UFZ_RemoteSensing/HOLAPS-H-JJA_anomaly-d-2001-2005.nc',
+     'test.mp4', 20, 4, 0.5, 5, 'test.csv')

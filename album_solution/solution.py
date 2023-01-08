@@ -39,7 +39,7 @@ def run():
     print(f'\nargs: \ndataset_path:{dataset_path} \noutput_path:{output_path} \nn_timepoints:{n_timepoints}')
     print(f'smooth_itr:{n_smooth_itr} \nopacity:{opacity} \nframerate:{framerate} \nevent_csv_path:{event_csv_path}')
 
-    render_movie_heatflux_timepoints.run_render(dataset_path, output_path, n_timepoints, n_smooth_itr, event_csv, opacity, framerate, event_csv_path)
+    render_movie_heatflux_timepoints.run_render(dataset_path, output_path, n_timepoints, n_smooth_itr, opacity, framerate, event_csv_path)
 
 setup(
     group="album",
