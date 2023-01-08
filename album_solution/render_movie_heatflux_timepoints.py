@@ -3,6 +3,7 @@ import numpy as np
 import netCDF4 as nc
 import gemgis as gg
 import pandas as pd
+import argparse
 
 def get_events(event_csv_path, time_arr, long_arr, lat_arr):    
     ## for now also processing timepoints outside of user input timepoints.
@@ -169,5 +170,18 @@ def run_render(dataset_path, output_path, n_timepoints, n_smooth_itr, opacity, f
 
 
 if __name__ == "__main__":
-    run_render('/home/ella/work/heat_flux_anomalies/UFZ_RemoteSensing/HOLAPS-H-JJA_anomaly-d-2001-2005.nc',
-     'test.mp4', 20, 4, 0.5, 5, 'test.csv')
+
+    parser = argparse.ArgumentParser()
+    
+    parser.add_argument('--dataset_path', required=True)
+    parser.add_argument('--output_path', default='output.mp4')
+    parser.add_argument('--n_timepoints', default=10, type=int)
+    parser.add_argument('--n_smooth_itr', default=0, type=int)
+    parser.add_argument('--opacity', default=1, type=float)
+    parser.add_argument('--framerate', default=20, type=int)
+    parser.add_argument('--event_csv_path', default='None')
+
+    args = parser.parse_args()
+
+    run_render(args.dataset_path, args.output_path, args.n_timepoints, 
+        args.n_smooth_itr, args.opacity, args.framerate, args.event_csv_path)
