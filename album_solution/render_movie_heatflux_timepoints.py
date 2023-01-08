@@ -4,9 +4,63 @@ import netCDF4 as nc
 import gemgis as gg
 import pandas as pd
 
+def get_events(event_csv_path, time_arr, long_arr, lat_arr):    
+    ## for now also processing timepoints outside of user input timepoints.
+    ## for now - not checking that long and lat values are close to values in arrays.
+    ## e.g. [abs(long_arr[idx_long[i]]-val)<max_dist for i,val in enumerate(loc_arr[0])]
+
+    event_dict = {}
+
+    df = pd.read_csv(event_csv_path, dtype={"first_date":str, "last_date":str})
+    ## add column - timepoint index of first and last date:
+    for i in df.index:
+        try:
+            idx_first_date = time_arr.index(df.loc[i,"first_date"])
+            idx_last_date = time_arr.index(df.loc[i,"last_date"])
+
+            for idx in range(idx_first_date,idx_last_date+1):
+
+                point = [(np.abs(long_arr-df.loc[i,"longitude"])).argmin(), 
+                    (np.abs(lat_arr-df.loc[i,"latitude"])).argmin(), 
+                    150] # x,y,z
+
+                text = df.loc[i,'text']
+
+                if str(idx) not in event_dict:
+                    event_dict[str(idx)] = [[point], [text]]  
+                else: 
+                    event_dict[str(idx)][0].append(point)
+                    event_dict[str(idx)][1].append(text) 
+
+        except:
+            print(f'WARNING: event csv has an invalid date - number {i}')
+
+    print(event_dict)
+
+    return event_dict
+
+#     idx_first_date = [np.where(time_arr==ts) for ts in df["first_date"].to_numpy()]
+#     idx_last_date = [np.where(time_arr==ts) for ts in df["last_date"].to_numpy()]
+
+#     # find index of event location values:
+#     loc_arr = df[["longitude","latitude"]].to_numpy().T
+#     idx_long = [(np.abs(long_arr-val)).argmin() for val in loc_arr[0]]
+#     idx_lat = [(np.abs(lat_arr-val)).argmin() for val in loc_arr[1]]
+
+#     ## acceptable distance from event location to dataset location:
+#     max_dist = 0.5
+
+#     ### location: check that the values are not too far from location values:
+#     check_long = [abs(long_arr[idx_long[i]]-val)<max_dist for i,val in enumerate(loc_arr[0])]
+#     check_lat = [abs(lat_arr[idxs_lat[i]]-val)<max_dist for i,val in enumerate(loc_arr[1])]
+
+
+#     ## add idxs of time, long, and lat to dataframe:
+#     for i in df.index:
+#         if idx_first_date.size[i] and idx_last_date.size[i] and check_long[i] and check_lat[i]:
+#             df.loc[i,"idx_first_date"] = 
 
 def format_date(date):
-    date = str(date)
     return f'{date[6:8]}/{date[4:6]}/{date[:4]}'
 
 
@@ -19,6 +73,7 @@ def try_create_mesh(arr, fill_value):
     z_min_bound = fill_value
     ## due to sometimes producing an empty / incorrect mesh:
     ## while I catch the error from `unstructured_grid` the error already happens when creating`grid`
+    i=0
     while not n_points or z_min_bound==fill_value:
 
         ## creates a pyvista.StructuredGrid
@@ -31,8 +86,11 @@ def try_create_mesh(arr, fill_value):
         unstructured_grid = grid.threshold(int(min_val-2), invert=False, preference='point', all_scalars=True)
         n_points = unstructured_grid.n_points
         z_min_bound = unstructured_grid.bounds[4]
+        if i==20:
+            raise Exception("please rerun - mesh creation failed.")
+        i+=1
 
-    return  grid
+    return unstructured_grid
 
 
 
@@ -52,21 +110,26 @@ def create_timepoint_surface(ds, heat_arr_name, fill_value, tp_idx, n_smooth_itr
 
 
 
-def run_render(dataset_path, output_path, n_timepoints, n_smooth_itr, event_csv, opacity, framerate):
+def run_render(dataset_path, output_path, n_timepoints, n_smooth_itr, opacity, framerate, event_csv_path):
 
     # dataset:
     ## preprocessing steps:
     heat_arr_name = 'surface_upward_sensible_heat_flux' # check with dataset has 3D and get name??
     ds = nc.Dataset(dataset_path)
-    time_arr = ds['time'][:]
+    time_arr = [s[:-2] for s in (ds['time'][:]).astype(str)]
     long_arr = ds['longitude'][:]
     lat_arr = ds['latitude'][:]
+
     fill_value=-999
 
     # plotting params:
     cmap = 'seismic'
     clim = [-200, 200] # check values outside of range
     sargs = {"color":"black"} # scale bar arguments
+
+    events_per_time_idx_dict = {}
+    if event_csv_path:
+        events_per_time_idx_dict = get_events(event_csv_path, time_arr, long_arr, lat_arr)
 
     ## Create our render engine
     p = pv.Plotter(notebook=False, off_screen=True, 
@@ -88,17 +151,14 @@ def run_render(dataset_path, output_path, n_timepoints, n_smooth_itr, event_csv,
     p.camera_position = 'xy'
     p.camera.zoom(1.5)
 
-    ### for event annotations on the dataset:
-    ## create a csv file with this data.
-    ## For now just shows a test example:
-    points = np.array([[200., 200., 150.],])
-    labels = [f'lorem ipsum \n lorem ipsum']
-
-    actor_eventText = p.add_point_labels(points, labels, italic=True, font_size=20,
-                                shape_color='black', name='event_text',
-                                point_color='green', point_size=20,
-                                render_points_as_spheres=True,
-                                always_visible=True, shadow=True)
+    if '0' in events_per_time_idx_dict:
+        actor_eventText = p.add_point_labels(events_per_time_idx_dict['0'][0],
+                                            events_per_time_idx_dict['0'][1], 
+                                            italic=True, font_size=20,
+                                            shape_color='black', name='event_text',
+                                            point_color='green', point_size=20,
+                                            render_points_as_spheres=True,
+                                            always_visible=True, shadow=True)
 
     p.show(auto_close=False)
 
@@ -115,19 +175,18 @@ def run_render(dataset_path, output_path, n_timepoints, n_smooth_itr, event_csv,
         actor_mesh = p.add_mesh(mesh=create_timepoint_surface(ds, heat_arr_name, fill_value, tp_idx, n_smooth_itr), clim=clim, cmap=cmap, opacity=opacity, scalar_bar_args=sargs)
         actor_date = p.add_text(format_date(time_arr[tp_idx]), position='upper_right', color='blue', shadow=True, font_size=26)
         
-        if tp_idx==5:
-            actor_eventText = p.add_point_labels(points, labels, italic=True, font_size=20,
-                                shape_color='black', name='event_text',
-                                point_color='green', point_size=20,
-                                render_points_as_spheres=True,
-                                always_visible=True, shadow=True)
+        if str(tp_idx) in events_per_time_idx_dict:
+            actor_eventText = p.add_point_labels(events_per_time_idx_dict[str(tp_idx)][0],
+                                            events_per_time_idx_dict[str(tp_idx)][1], 
+                                            italic=True, font_size=20,
+                                            shape_color='black', name='event_text',
+                                            point_color='green', point_size=20,
+                                            render_points_as_spheres=True,
+                                            always_visible=True, shadow=True)
 
         p.write_frame()
         
     pv.close_all()
 
-
-
-
 run_render('/home/ella/work/heat_flux_anomalies/UFZ_RemoteSensing/HOLAPS-H-JJA_anomaly-d-2001-2005.nc',
-    'test.mp4', 4, 10, None, 0.5, 5)
+    'test.mp4', 20, 4, 0.5, 5, 'test.csv')

@@ -29,16 +29,17 @@ def run():
     output_path = str(args.output_path)
     n_timepoints = int(args.n_timepoints) ## change to range??
     n_smooth_itr = int(args.n_smooth_itr)
-    event_csv = str(args.event_csv_path)
+    event_csv_path = str(args.event_csv_path)
 
     ## plot args:
     opacity=float(args.opacity)
     framerate=int(args.framerate)
 
     # Print the arguments:
-    print(f'\nargs: \ndataset_path:{dataset_path} \noutput_path:{output_path} \nn_timepoints:{n_timepoints} \nsmooth_itr:{n_smooth_itr} \nopacity:{opacity} \nframerate:{framerate}')
+    print(f'\nargs: \ndataset_path:{dataset_path} \noutput_path:{output_path} \nn_timepoints:{n_timepoints}')
+    print(f'smooth_itr:{n_smooth_itr} \nopacity:{opacity} \nframerate:{framerate} \nevent_csv_path:{event_csv_path}')
 
-    render_movie_heatflux_timepoints.run_render(dataset_path, output_path, n_timepoints, n_smooth_itr, event_csv, opacity, framerate)
+    render_movie_heatflux_timepoints.run_render(dataset_path, output_path, n_timepoints, n_smooth_itr, event_csv, opacity, framerate, event_csv_path)
 
 setup(
     group="album",
@@ -96,7 +97,7 @@ setup(
         "name": "event_csv_path",
         "type": "string",
         "default": None,
-        "description": "csv with events to display on the map - columns: first date (e.g. 20001231), last date, latitude, longitude"
+        "description": "csv with events to display on the map - columns: `first_date` (e.g. 20001231), `last_date`, `longitude`, `latitude`, `text`"
         },],
     run=run,
     dependencies={'environment_file': env_file}
