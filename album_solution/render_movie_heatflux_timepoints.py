@@ -91,10 +91,9 @@ def create_timepoint_surface(ds, heat_arr_name, fill_value, tp_idx, n_smooth_itr
 
 def run_render(dataset_path, output_path, n_timepoints, n_smooth_itr, opacity, framerate, event_csv_path):
 
-    # dataset:
-    ## preprocessing steps:
-    heat_arr_name = 'surface_upward_sensible_heat_flux' # check with dataset has 3D and get name??
     ds = nc.Dataset(dataset_path)
+    # get the name of the heat array - the only one that is 3D:
+    heat_arr_name = [k for k in ds.variables.keys() if len(ds[k].shape)==3][0]
     time_arr = [s[:-2] for s in (ds['time'][:]).astype(str)]
     long_arr = ds['longitude'][:]
     lat_arr = ds['latitude'][:]
