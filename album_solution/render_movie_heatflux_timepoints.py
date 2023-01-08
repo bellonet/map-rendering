@@ -35,30 +35,8 @@ def get_events(event_csv_path, time_arr, long_arr, lat_arr):
         except:
             print(f'WARNING: event csv has an invalid date - number {i}')
 
-    print(event_dict)
-
     return event_dict
 
-#     idx_first_date = [np.where(time_arr==ts) for ts in df["first_date"].to_numpy()]
-#     idx_last_date = [np.where(time_arr==ts) for ts in df["last_date"].to_numpy()]
-
-#     # find index of event location values:
-#     loc_arr = df[["longitude","latitude"]].to_numpy().T
-#     idx_long = [(np.abs(long_arr-val)).argmin() for val in loc_arr[0]]
-#     idx_lat = [(np.abs(lat_arr-val)).argmin() for val in loc_arr[1]]
-
-#     ## acceptable distance from event location to dataset location:
-#     max_dist = 0.5
-
-#     ### location: check that the values are not too far from location values:
-#     check_long = [abs(long_arr[idx_long[i]]-val)<max_dist for i,val in enumerate(loc_arr[0])]
-#     check_lat = [abs(lat_arr[idxs_lat[i]]-val)<max_dist for i,val in enumerate(loc_arr[1])]
-
-
-#     ## add idxs of time, long, and lat to dataframe:
-#     for i in df.index:
-#         if idx_first_date.size[i] and idx_last_date.size[i] and check_long[i] and check_lat[i]:
-#             df.loc[i,"idx_first_date"] = 
 
 def format_date(date):
     return f'{date[6:8]}/{date[4:6]}/{date[:4]}'
